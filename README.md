@@ -45,7 +45,7 @@ git clone https://github.com/marttp/cd15155-ml-ops-starter.git
 cd cd15155-ml-ops-starter
 ```
 
-> All the dependencies are installed in the workspace. Please refrain from installing dependencies using pip
+> Udacity workspaces have preinstalled dependencies. Local machines use an isolated Python 3.12 environment as described in the setup evidence.
 
 Navigate to the project root 
 ```bash
@@ -92,9 +92,6 @@ starter/
 │   └── locustfile.py        # Locust load testing (Task 3)
 ├── tests/
 │   └── test_api.py          # pytest integration tests for the API (Task 3)
-├── .github/
-│   └── workflows/
-│       └── ci-cd.yml        # CI/CD pipeline (Task 5)
 ├── dvc.yaml                 # DVC pipeline definition (Task 1)
 ├── params.yaml              # Configuration parameters 
 ├── docker-compose.yml       # Local API service orchestration (Task 4)
