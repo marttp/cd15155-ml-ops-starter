@@ -21,12 +21,14 @@ jobs:
         working-directory: starter
         run: |
           docker build -t finbert-api:verify .
-          docker run -d --name finbert-verify -p 8000:8000 -e HF_HUB_OFFLINE=1 finbert-api:verify
+          docker network create finbert-monitoring
+          docker run -d --network finbert-monitoring --network-alias api --name finbert-verify -p 8000:8000 -e HF_HUB_OFFLINE=1 finbert-api:verify
           for attempt in $(seq 1 60); do
             if curl --fail --silent http://localhost:8000/health; then break; fi
             sleep 2
           done
           curl --fail http://localhost:8000/health
+          docker run -d --name prometheus-verify --network finbert-monitoring -p 9090:9090 -v "$PWD/prometheus.yml:/etc/prometheus/prometheus.yml:ro" prom/prometheus:v3.2.1
       - name: Verify real predictions
         run: |
           python - <<'PY'
@@ -45,8 +47,28 @@ jobs:
                   assert item['sentiment'] in {'positive', 'negative', 'neutral'}
                   assert 0 <= item['confidence'] <= 1 and item['latency_ms'] >= 0
           PY
+      - name: Verify Prometheus scraping
+        run: |
+          python - <<'PY'
+          import json, time, urllib.request, urllib.error
+          for attempt in range(20):
+              try:
+                  with urllib.request.urlopen('http://localhost:9090/api/v1/targets') as response:
+                      targets = json.load(response)['data']['activeTargets']
+                  if any(target['labels'].get('job') == 'finbert-api' and target['health'] == 'up' for target in targets):
+                      break
+              except urllib.error.URLError:
+                  pass
+              time.sleep(2)
+          else:
+              raise RuntimeError('Prometheus API target did not become healthy')
+          with urllib.request.urlopen('http://localhost:8000/metrics') as response:
+              assert 'finbert_prediction_requests_total' in response.read().decode()
+          print('Prometheus successfully scraped the API')
+          PY
       - name: Container diagnostics
         if: always()
         run: |
           docker logs finbert-verify || true
+          docker logs prometheus-verify || true
           docker inspect finbert-verify --format '{{json .State}}' || true

@@ -2,6 +2,7 @@
 import argparse
 import json
 import os
+import shlex
 from pathlib import Path
 
 import boto3
@@ -36,11 +37,13 @@ def execution_role(session, account):
 def task_definition(image, role_arn, region):
     logging = {"logDriver": "awslogs", "options": {
         "awslogs-group": LOG_GROUP, "awslogs-region": region, "awslogs-stream-prefix": "ecs"}}
-    proxy_config = "server { listen 80; location / { proxy_pass http://127.0.0.1:8000; proxy_read_timeout 120s; } }"
+    proxy_config = "server { listen 80; location /prometheus/ { proxy_pass http://127.0.0.1:9090/; } location / { proxy_pass http://127.0.0.1:8000; proxy_read_timeout 120s; } }"
+    prometheus_config = (Path(__file__).resolve().parents[1] / "prometheus.yml").read_text().replace("api:8000", "127.0.0.1:8000")
     return {
         "family": REPOSITORY, "networkMode": "awsvpc", "requiresCompatibilities": ["FARGATE"],
         "cpu": "512", "memory": "2048", "executionRoleArn": role_arn,
         "runtimePlatform": {"cpuArchitecture": "X86_64", "operatingSystemFamily": "LINUX"},
+        "volumes": [{"name": "prometheus-config"}],
         "containerDefinitions": [
             {"name": REPOSITORY, "image": image, "essential": True,
              "portMappings": [{"containerPort": 8000, "protocol": "tcp"}],
@@ -54,6 +57,16 @@ def task_definition(image, role_arn, region):
              "dependsOn": [{"containerName": REPOSITORY, "condition": "HEALTHY"}],
              "entryPoint": ["/bin/sh", "-c"],
              "command": [f"printf '%s' '{proxy_config}' > /etc/nginx/conf.d/default.conf; exec nginx -g 'daemon off;'"],
+             "logConfiguration": logging},
+            {"name": "monitoring-config", "image": "public.ecr.aws/docker/library/busybox:1.37", "essential": False,
+             "entryPoint": ["/bin/sh", "-c"], "command": [f"printf '%s' {shlex.quote(prometheus_config)} > /config/prometheus.yml"],
+             "mountPoints": [{"sourceVolume": "prometheus-config", "containerPath": "/config"}],
+             "logConfiguration": logging},
+            {"name": "prometheus", "image": "prom/prometheus:v3.2.1", "essential": True,
+             "command": ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=6h",
+                         "--storage.tsdb.retention.size=128MB", "--web.external-url=/prometheus", "--web.route-prefix=/"],
+             "dependsOn": [{"containerName": "monitoring-config", "condition": "SUCCESS"}],
+             "mountPoints": [{"sourceVolume": "prometheus-config", "containerPath": "/etc/prometheus", "readOnly": True}],
              "logConfiguration": logging},
         ],
     }
@@ -107,10 +120,10 @@ def main():
     clusters = ecs.describe_clusters(clusters=[CLUSTER])["clusters"]
     if not clusters or clusters[0]["status"] != "ACTIVE":
         ecs.create_cluster(clusterName=CLUSTER)
+    definition = task_definition(args.image, role_arn, session.region_name)
+    task_arn = ecs.register_task_definition(**definition)["taskDefinition"]["taskDefinitionArn"]
     services = ecs.describe_services(cluster=CLUSTER, services=[SERVICE])["services"]
     if not services or services[0]["status"] != "ACTIVE":
-        definition = task_definition(args.image, role_arn, session.region_name)
-        task_arn = ecs.register_task_definition(**definition)["taskDefinition"]["taskDefinitionArn"]
         ecs.create_service(cluster=CLUSTER, serviceName=SERVICE, taskDefinition=task_arn,
             desiredCount=1, launchType="FARGATE",
             deploymentConfiguration={"minimumHealthyPercent": 0, "maximumPercent": 100,
