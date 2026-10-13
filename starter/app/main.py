@@ -1,12 +1,15 @@
 """Financial headline sentiment inference service."""
 
+import json
 import logging
 import os
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from time import perf_counter
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
 from pydantic import BaseModel, Field, field_validator
 
 if __package__:
@@ -15,12 +18,21 @@ else:
     from utils import load_classifier
 
 load_dotenv()
+logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger("finbert-api")
 classifiers = {}
 
 
 def log(level: str, message: str, **kwargs) -> None:
-    logger.log(getattr(logging, level.upper()), "%s %s", message, kwargs)
+    entry = {"timestamp": datetime.now(timezone.utc).isoformat(),
+             "level": level.upper(), "message": message, **kwargs}
+    logger.log(getattr(logging, level.upper()), json.dumps(entry))
+
+
+PREDICTION_REQUESTS = Counter("finbert_prediction_requests_total", "Successful predictions", ["sentiment"])
+PREDICTION_LATENCY = Histogram("finbert_prediction_latency_ms", "Prediction completion latency in milliseconds",
+                             buckets=[1, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000])
+PREDICTION_ERRORS = Counter("finbert_prediction_errors_total", "Prediction failures")
 
 
 class PredictRequest(BaseModel):
@@ -55,6 +67,7 @@ class PredictionResult(BaseModel):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     try:
+        log("INFO", "Loading model", source=os.getenv("MODEL_SOURCE", "mlflow"))
         classifiers["sentiment"] = load_classifier()
         log("INFO", "Model loaded successfully")
     except Exception as error:
@@ -70,24 +83,36 @@ app = FastAPI(title="Sentiment Analysis API", lifespan=lifespan)
 
 
 def run_predictions(texts: list[str]) -> list[PredictionResult]:
-    if "sentiment" not in classifiers:
-        raise HTTPException(status_code=503, detail="Model not loaded")
     try:
+        if "sentiment" not in classifiers:
+            raise HTTPException(status_code=503, detail="Model not loaded")
         if any(len(text) > 2000 for text in texts):
             log("WARNING", "Long input will be truncated to the model token limit")
         start = perf_counter()
         results = classifiers["sentiment"](texts, batch_size=32, truncation=True, max_length=512)
         latency_ms = (perf_counter() - start) * 1000
-        return [PredictionResult(text=text, sentiment=result["label"],
+        predictions = [PredictionResult(text=text, sentiment=result["label"],
                                  confidence=result["score"], latency_ms=latency_ms)
                 for text, result in zip(texts, results, strict=True)]
+        for prediction in predictions:
+            PREDICTION_REQUESTS.labels(sentiment=prediction.sentiment).inc()
+            PREDICTION_LATENCY.observe(prediction.latency_ms)
+            log("INFO", "Prediction completed", sentiment=prediction.sentiment,
+                confidence=prediction.confidence, latency_ms=prediction.latency_ms)
+        return predictions
     except Exception as error:
+        PREDICTION_ERRORS.inc()
         log("ERROR", "Prediction failed", error=str(error))
         raise
 
 
 def run_prediction(text: str) -> PredictionResult:
     return run_predictions([text])[0]
+
+
+@app.get("/metrics")
+def metrics():
+    return Response(content=generate_latest(), headers={"Content-Type": CONTENT_TYPE_LATEST})
 
 
 @app.get("/health")

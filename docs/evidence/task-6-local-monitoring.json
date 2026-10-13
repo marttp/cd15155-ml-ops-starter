@@ -1,0 +1,107 @@
+{
+  "run_id": "ebc5165db1d54a8ba0f697dcaacd9b0b",
+  "experiment": "finbert-production-monitoring",
+  "api_url": "http://localhost:8000",
+  "predictions": 444,
+  "windows": [
+    {
+      "step": 0,
+      "samples": 50,
+      "metrics": {
+        "pct_positive": 70.0,
+        "pct_negative": 24.0,
+        "pct_neutral": 6.0,
+        "avg_confidence": 0.5360447603464127,
+        "avg_latency_ms": 29.453926699934527
+      }
+    },
+    {
+      "step": 1,
+      "samples": 50,
+      "metrics": {
+        "pct_positive": 80.0,
+        "pct_negative": 16.0,
+        "pct_neutral": 4.0,
+        "avg_confidence": 0.5218703311681747,
+        "avg_latency_ms": 30.182717520801816
+      }
+    },
+    {
+      "step": 2,
+      "samples": 50,
+      "metrics": {
+        "pct_positive": 72.0,
+        "pct_negative": 22.0,
+        "pct_neutral": 6.0,
+        "avg_confidence": 0.4841237854957581,
+        "avg_latency_ms": 30.29817415837897
+      }
+    },
+    {
+      "step": 3,
+      "samples": 50,
+      "metrics": {
+        "pct_positive": 90.0,
+        "pct_negative": 4.0,
+        "pct_neutral": 6.0,
+        "avg_confidence": 0.5017939734458924,
+        "avg_latency_ms": 31.000964200939052
+      }
+    },
+    {
+      "step": 4,
+      "samples": 50,
+      "metrics": {
+        "pct_positive": 86.0,
+        "pct_negative": 12.0,
+        "pct_neutral": 2.0,
+        "avg_confidence": 0.5047914522886277,
+        "avg_latency_ms": 30.081280760641675
+      }
+    },
+    {
+      "step": 5,
+      "samples": 50,
+      "metrics": {
+        "pct_positive": 90.0,
+        "pct_negative": 10.0,
+        "pct_neutral": 0.0,
+        "avg_confidence": 0.5250503277778625,
+        "avg_latency_ms": 30.57868003990734
+      }
+    },
+    {
+      "step": 6,
+      "samples": 50,
+      "metrics": {
+        "pct_positive": 78.0,
+        "pct_negative": 12.0,
+        "pct_neutral": 10.0,
+        "avg_confidence": 0.5503568667173385,
+        "avg_latency_ms": 31.223406619974412
+      }
+    },
+    {
+      "step": 7,
+      "samples": 50,
+      "metrics": {
+        "pct_positive": 58.0,
+        "pct_negative": 34.0,
+        "pct_neutral": 8.0,
+        "avg_confidence": 0.48271395921707155,
+        "avg_latency_ms": 31.272257499804255
+      }
+    },
+    {
+      "step": 8,
+      "samples": 44,
+      "metrics": {
+        "pct_positive": 72.72727272727273,
+        "pct_negative": 20.454545454545453,
+        "pct_neutral": 6.818181818181818,
+        "avg_confidence": 0.5812046392397447,
+        "avg_latency_ms": 31.29613540857628
+      }
+    }
+  ]
+}

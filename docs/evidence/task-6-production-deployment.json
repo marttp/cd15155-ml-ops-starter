@@ -1,0 +1,50 @@
+{
+  "url": "http://44.223.80.3",
+  "task_definition": "arn:aws:ecs:us-east-1:<AWS_ACCOUNT_ID>:task-definition/finbert-api:5",
+  "images": [
+    {
+      "name": "http-proxy",
+      "digest": "sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10"
+    },
+    {
+      "name": "prometheus",
+      "digest": "sha256:6927e0919a144aa7616fd0137d4816816d42f6b816de3af269ab065250859a62"
+    },
+    {
+      "name": "finbert-api",
+      "digest": "sha256:fa31fe1a6bf024a52f9f4577ecc3b691ef1420f5097fe1dafa0ca8d403e70de4"
+    },
+    {
+      "name": "monitoring-config",
+      "digest": "sha256:bdf57e528e45e4433820e045b29b4597825a1c9e38353532d90a01445013f82e"
+    }
+  ],
+  "responses": [
+    {
+      "endpoint": "/predict",
+      "response": {
+        "text": "The company reported record profits.",
+        "sentiment": "positive",
+        "confidence": 0.8390534520149231,
+        "latency_ms": 1891.6405860000225
+      }
+    },
+    {
+      "endpoint": "/predict/batch",
+      "response": [
+        {
+          "text": "The company reported record profits.",
+          "sentiment": "positive",
+          "confidence": 0.8390534520149231,
+          "latency_ms": 329.32723499999383
+        },
+        {
+          "text": "Stocks closed flat.",
+          "sentiment": "neutral",
+          "confidence": 0.798346996307373,
+          "latency_ms": 329.32723499999383
+        }
+      ]
+    }
+  ]
+}

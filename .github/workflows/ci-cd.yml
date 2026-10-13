@@ -4,10 +4,15 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+    inputs:
+      diagnostics:
+        description: Read ECS state without deploying
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
-  group: mlops-${{ github.head_ref || github.ref_name }}
+  group: mlops-${{ inputs.diagnostics && 'diagnostics' || github.head_ref || github.ref_name }}
   cancel-in-progress: false
 env:
   ECR_REPOSITORY: finbert-api
@@ -25,6 +30,7 @@ defaults:
     working-directory: starter
 jobs:
   lint:
+    if: ${{ !inputs.diagnostics }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -32,7 +38,7 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install ruff
-      - run: ruff check --isolated --select E4,E7,E9,F app/ scripts/ tests/
+      - run: ruff check --isolated --select E4,E7,E9,F app/ scripts/ tests/ monitoring/
   test:
     runs-on: ubuntu-latest
     needs: lint
@@ -160,9 +166,42 @@ jobs:
           wait-for-service-stability: true
       - run: pip install boto3==1.34.101 requests==2.32.3
       - run: python scripts/verify_deployment.py
+      - run: python scripts/verify_prometheus.py
+      - name: Monitor production traffic in MLflow
+        run: |
+          pip install mlflow==2.16.2 sqlalchemy==2.0.54 python-dotenv==1.0.1
+          python scripts/clean_data.py
+          mlflow server --host 127.0.0.1 --port 5001 --backend-store-uri sqlite:///reports/monitoring.db --artifacts-destination reports/mlartifacts > reports/mlflow-server.log 2>&1 &
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:5001/health; then break; fi
+            sleep 2
+          done
+          export API_BASE_URL="$(python -c 'import json; print(json.load(open("reports/deployment.json"))["url"])')"
+          export MLFLOW_TRACKING_URI=http://127.0.0.1:5001
+          python monitoring/stream.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: deployment-evidence
-          path: starter/reports/deployment.json
+          path: |
+            starter/reports/deployment.json
+            starter/reports/prometheus.json
+            starter/reports/monitoring.json
+            starter/reports/monitoring.db
           if-no-files-found: warn
+  diagnostics:
+    if: inputs.diagnostics
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - run: pip install boto3==1.34.101
+      - run: python scripts/diagnose_aws.py
