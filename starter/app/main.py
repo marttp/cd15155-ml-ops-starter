@@ -30,7 +30,7 @@ def log(level: str, message: str, **kwargs) -> None:
 
 
 PREDICTION_REQUESTS = Counter("finbert_prediction_requests_total", "Successful predictions", ["sentiment"])
-PREDICTION_LATENCY = Histogram("finbert_prediction_latency_ms", "Prediction completion latency in milliseconds",
+PREDICTION_LATENCY = Histogram("finbert_prediction_latency_ms", "Inference call completion latency in milliseconds",
                              buckets=[1, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000])
 PREDICTION_ERRORS = Counter("finbert_prediction_errors_total", "Prediction failures")
 
@@ -83,9 +83,9 @@ app = FastAPI(title="Sentiment Analysis API", lifespan=lifespan)
 
 
 def run_predictions(texts: list[str]) -> list[PredictionResult]:
+    if "sentiment" not in classifiers:
+        raise HTTPException(status_code=503, detail="Model not loaded")
     try:
-        if "sentiment" not in classifiers:
-            raise HTTPException(status_code=503, detail="Model not loaded")
         if any(len(text) > 2000 for text in texts):
             log("WARNING", "Long input will be truncated to the model token limit")
         start = perf_counter()
@@ -94,9 +94,9 @@ def run_predictions(texts: list[str]) -> list[PredictionResult]:
         predictions = [PredictionResult(text=text, sentiment=result["label"],
                                  confidence=result["score"], latency_ms=latency_ms)
                 for text, result in zip(texts, results, strict=True)]
+        PREDICTION_LATENCY.observe(latency_ms)
         for prediction in predictions:
             PREDICTION_REQUESTS.labels(sentiment=prediction.sentiment).inc()
-            PREDICTION_LATENCY.observe(prediction.latency_ms)
             log("INFO", "Prediction completed", sentiment=prediction.sentiment,
                 confidence=prediction.confidence, latency_ms=prediction.latency_ms)
         return predictions

@@ -23,13 +23,31 @@ def metric_total(client, name):
     return sum(sample.value for sample in samples(client) if sample.name == name)
 
 
-def test_metrics_count_predictions_and_latency(client):
+@pytest.mark.parametrize("texts", [["Stocks closed flat."], ["Stocks closed flat.", "The company reported record profits."]])
+def test_metrics_count_predictions_and_latency(client, texts):
     before = metric_total(client, "finbert_prediction_requests_total")
     latency_before = metric_total(client, "finbert_prediction_latency_ms_count")
-    response = client.post("/predict/batch", json={"texts": ["Stocks closed flat.", "The company reported record profits."]})
+    sum_before = metric_total(client, "finbert_prediction_latency_ms_sum")
+    response = client.post("/predict/batch", json={"texts": texts})
     assert response.status_code == 200
-    assert metric_total(client, "finbert_prediction_requests_total") == before + 2
-    assert metric_total(client, "finbert_prediction_latency_ms_count") == latency_before + 2
+    assert metric_total(client, "finbert_prediction_requests_total") == before + len(texts)
+    assert metric_total(client, "finbert_prediction_latency_ms_count") == latency_before + 1
+    assert metric_total(client, "finbert_prediction_latency_ms_sum") - sum_before == pytest.approx(response.json()[0]["latency_ms"])
+
+
+@pytest.mark.parametrize("path,payload", [
+    ("/predict", {"text": "Stocks closed flat."}),
+    ("/predict/batch", {"texts": ["Stocks closed flat.", "Record profits."]}),
+])
+def test_unloaded_model_does_not_count_as_prediction_failure(client, monkeypatch, path, payload):
+    errors_before = metric_total(client, "finbert_prediction_errors_total")
+    latency_before = metric_total(client, "finbert_prediction_latency_ms_count")
+    requests_before = metric_total(client, "finbert_prediction_requests_total")
+    monkeypatch.delitem(classifiers, "sentiment")
+    assert client.post(path, json=payload).status_code == 503
+    assert metric_total(client, "finbert_prediction_errors_total") == errors_before
+    assert metric_total(client, "finbert_prediction_latency_ms_count") == latency_before
+    assert metric_total(client, "finbert_prediction_requests_total") == requests_before
 
 
 def test_prediction_exception_increments_error_metric(client, monkeypatch):
