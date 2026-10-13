@@ -61,13 +61,13 @@ case "${1:-help}" in
     "$PYTHON" -m dvc repro
     compose up -d mlflow
     "$PYTHON" - <<'PY'
-import time, urllib.request, urllib.error
+import time, urllib.request, urllib.error, http.client
 for attempt in range(60):
     try:
         with urllib.request.urlopen('http://127.0.0.1:5001/health', timeout=3) as response:
             assert response.status == 200
         break
-    except (urllib.error.URLError, TimeoutError):
+    except (OSError, http.client.HTTPException):
         time.sleep(2)
 else:
     raise SystemExit('MLflow did not start. Inspect docker compose logs.')

@@ -93,8 +93,10 @@ The deployment run's `reports/deployment.json` artifact contains the current pub
 URL; its monitoring artifacts contain the MLflow database and window metrics.
 AWS hosts the API and Prometheus; evaluation/monitoring MLflow runs execute in
 GitHub Actions and are retained as artifacts, rather than a public MLflow server.
-Pausing tasks does not remove ECR storage charges. The currently deployed service
-is kept running for review as requested.
+Pausing tasks does not remove ECR storage charges. After course review, set the repository variable `AWS_DEPLOY_ENABLED=false`
+to keep push-triggered checks running without rebuilding or deploying AWS resources.
+Explicit `aws-deploy` remains available when valid credentials and cloud access
+are restored. The course cloud resources are no longer assumed active.
 
 ## Prerequisites
 
