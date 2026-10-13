@@ -1,0 +1,12 @@
+# Runtime dependencies only. Install CPU PyTorch separately in the image.
+transformers==4.44.2
+fastapi==0.111.0
+uvicorn[standard]==0.29.0
+pydantic==2.7.1
+python-dotenv==1.0.1
+requests==2.32.3
+mlflow==2.16.2
+sqlalchemy==2.0.54
+prometheus-client==0.20.0
+numpy==1.26.4
+scikit-learn==1.3.2

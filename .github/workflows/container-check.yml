@@ -1,0 +1,52 @@
+name: Container verification
+on:
+  pull_request:
+  push:
+    branches: [main, codex/mlops-task-4-container]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Compose
+        working-directory: starter
+        run: |
+          cp .env.example .env
+          MODEL_SOURCE=huggingface docker compose config --quiet
+      - name: Build and run the image
+        working-directory: starter
+        run: |
+          docker build -t finbert-api:verify .
+          docker run -d --name finbert-verify -p 8000:8000 -e HF_HUB_OFFLINE=1 finbert-api:verify
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://localhost:8000/health; then break; fi
+            sleep 2
+          done
+          curl --fail http://localhost:8000/health
+      - name: Verify real predictions
+        run: |
+          python - <<'PY'
+          import json, urllib.request
+          for path, payload, expected in [
+              ('/predict', {'text': 'The company reported record profits.'}, 1),
+              ('/predict/batch', {'texts': ['The company reported record profits.', 'Stocks closed flat.']}, 2),
+          ]:
+              request = urllib.request.Request('http://localhost:8000' + path,
+                  data=json.dumps(payload).encode(), headers={'Content-Type': 'application/json'})
+              with urllib.request.urlopen(request) as response:
+                  result = json.load(response)
+              items = result if isinstance(result, list) else [result]
+              assert len(items) == expected
+              for item in items:
+                  assert item['sentiment'] in {'positive', 'negative', 'neutral'}
+                  assert 0 <= item['confidence'] <= 1 and item['latency_ms'] >= 0
+          PY
+      - name: Container diagnostics
+        if: always()
+        run: |
+          docker logs finbert-verify || true
+          docker inspect finbert-verify --format '{{json .State}}' || true
