@@ -1,4 +1,6 @@
 prepare:
+  dataset_id: "baptle/financial_headlines_market_based"
+  dataset_revision: "d4ac449b57cb7dddfd5d8e05fd1326f8cb03fa29"
   data_dir: "data"
   test_size: 0.2
   random_seed: 42

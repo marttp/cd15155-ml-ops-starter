@@ -29,9 +29,9 @@ def load_and_split():
     train_path = os.path.join(data_dir, "train.csv")
     test_path = os.path.join(data_dir, "test.csv")
 
-    dataset_name = os.getenv("HF_DATASET_ID")
+    dataset_name = params["dataset_id"]
     print(f"Loading {dataset_name} dataset...")
-    dataset = load_dataset(dataset_name)
+    dataset = load_dataset(dataset_name, revision=params["dataset_revision"])
 
     # The dataset only has a train split
     # We create our own test split
