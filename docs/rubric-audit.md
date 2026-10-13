@@ -29,7 +29,7 @@ Paths below are relative to the repository. Python commands run from starter/.
 | Nonzero exit above either configured drift threshold | starter/scripts/run_deepchecks.py | CLI rejection and excessive-score tests passed; thresholds remain 0.5/0.6 | Complete |
 | Main-push trigger and lint, test, deepchecks, build, deploy jobs | .github/workflows/ci-cd.yml | Full AWS workflow passed; test and deepchecks depend on lint | Complete |
 | Test and quality jobs use MODEL_SOURCE=huggingface | .github/workflows/ci-cd.yml | Linux real-model integration and quality checks passed | Complete |
-| Build depends on both gates, authenticates AWS/ECR, pushes SHA/latest | .github/workflows/ci-cd.yml | Exact SHA image was pushed and deployed | Complete |
+| Build depends on both gates, authenticates AWS/ECR, pushes SHA/latest | .github/workflows/ci-cd.yml | Exact SHA image was pushed and deployed; verification rejects a different running image | Complete |
 | Deploy downloads/renders definition and uses ECS deploy action | .github/workflows/ci-cd.yml | Service finbert-api-service in finbert-cluster reached stability | Complete |
 | Required ECR, security group, cluster, task family, service | starter/scripts/bootstrap_aws.py | Provisioned and verified in us-east-1; HTTP 80 forwards to API 8000 | Complete |
 | Prediction Counter labelled by sentiment, latency-ms Histogram, error Counter | starter/app/main.py | Exposition tests verify counter and histogram increments | Complete |
