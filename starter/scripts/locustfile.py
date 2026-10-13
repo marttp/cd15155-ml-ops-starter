@@ -1,12 +1,7 @@
-"""
-Load test for the Sentiment Analysis API.
+"""Bounded or interactive load testing for all required API endpoints."""
+import random
 
-Run: locust -f locustfile.py --host http://localhost:8000
-
-Then open http://localhost:8089 to configure and start the test.
-"""
-
-from locust import HttpUser
+from locust import HttpUser, between, task
 
 SAMPLE_HEADLINES = [
     "The company reported record profits and raised its dividend.",
@@ -21,10 +16,16 @@ SAMPLE_HEADLINES = [
 
 
 class SentimentAPIUser(HttpUser):
-    # TODO: Implement three load test tasks using the @task decorator:
-    # 1. predict_single (weight 3): POST a randomly chosen headline to /predict
-    # 2. predict_batch (weight 1): POST a random sample of 4 headlines to /predict/batch
-    # 3. health_check (weight 1): GET /health
-    # Hint: set wait_time to simulate realistic user pacing.
-    # Documentation: https://docs.locust.io/en/stable/writing-a-locustfile.html
-    pass
+    wait_time = between(0.5, 1.5)
+
+    @task(3)
+    def predict_single(self):
+        self.client.post("/predict", json={"text": random.choice(SAMPLE_HEADLINES)})
+
+    @task(1)
+    def predict_batch(self):
+        self.client.post("/predict/batch", json={"texts": random.sample(SAMPLE_HEADLINES, 4)})
+
+    @task(1)
+    def health_check(self):
+        self.client.get("/health")
