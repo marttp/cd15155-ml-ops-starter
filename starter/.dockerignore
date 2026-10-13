@@ -8,3 +8,5 @@ __pycache__
 mlruns
 mlartifacts
 data
+.cache
+reports

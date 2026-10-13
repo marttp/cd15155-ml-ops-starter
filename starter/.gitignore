@@ -31,3 +31,7 @@ mlartifacts/
 .DS_Store
 .idea/
 .vscode/
+
+# Local quality-check models and generated reports
+.cache/
+reports/
