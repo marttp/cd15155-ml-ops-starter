@@ -1,0 +1,32 @@
+name: Lab service control
+on:
+  workflow_dispatch:
+    inputs:
+      desired_count:
+        description: '0 pauses the service; 1 resumes it'
+        type: choice
+        options: ['0', '1']
+        default: '0'
+permissions:
+  contents: read
+concurrency:
+  group: finbert-service-control
+  cancel-in-progress: false
+jobs:
+  control:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Set and verify service count
+        env:
+          DESIRED_COUNT: ${{ inputs.desired_count }}
+        run: |
+          case "$DESIRED_COUNT" in 0|1) ;; *) exit 1 ;; esac
+          aws ecs update-service --cluster finbert-cluster --service finbert-api-service --desired-count "$DESIRED_COUNT" > /dev/null
+          aws ecs wait services-stable --cluster finbert-cluster --services finbert-api-service
+          aws ecs describe-services --cluster finbert-cluster --services finbert-api-service --query 'services[0].{desired:desiredCount,running:runningCount,pending:pendingCount}'

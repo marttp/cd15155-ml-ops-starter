@@ -14,6 +14,10 @@ def main():
     if len(tasks) != 1:
         raise ValueError(f"Expected one running task, found {len(tasks)}")
     task = ecs.describe_tasks(cluster="finbert-cluster", tasks=tasks)["tasks"][0]
+    api_container = next(container for container in task["containers"] if container["name"] == "finbert-api")
+    expected_image = os.environ["EXPECTED_IMAGE_URI"]
+    if api_container["image"] != expected_image:
+        raise ValueError("Running ECS image does not match the successful build")
     eni = next(detail["value"] for attachment in task["attachments"]
         for detail in attachment["details"] if detail["name"] == "networkInterfaceId")
     interface = session.client("ec2").describe_network_interfaces(NetworkInterfaceIds=[eni])["NetworkInterfaces"][0]
@@ -32,7 +36,7 @@ def main():
         assert all(item["sentiment"] in {"positive", "neutral", "negative"} and
             0 <= item["confidence"] <= 1 and item["latency_ms"] >= 0 for item in items)
         responses.append({"endpoint": endpoint, "response": result})
-    evidence = {"url": url, "task_definition": task["taskDefinitionArn"],
+    evidence = {"url": url, "commit": os.environ.get("GITHUB_SHA"), "task_definition": task["taskDefinitionArn"],
         "images": [{"name": container["name"], "digest": container.get("imageDigest")} for container in task["containers"]],
         "responses": responses}
     Path("reports").mkdir(exist_ok=True)

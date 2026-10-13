@@ -1,5 +1,16 @@
 # Building a Real-Time Financial News Sentiment Service 
 
+This is marttp's coursework implementation fork of the Udacity starter.
+All required project criteria have implementation and observed evidence in the
+[final rubric audit](docs/rubric-audit.md). Task PRs #1 through #7 cover setup,
+DVC, the registry, API, containers, delivery, and production monitoring.
+
+The executable CI/CD workflow is at [.github/workflows/ci-cd.yml](.github/workflows/ci-cd.yml).
+Application commands run from `starter/`. See [setup evidence](docs/task-0-setup.md)
+for Python 3.12 installation and the verified MLflow server configuration.
+The inherited license is retained.
+
+
 Operationalise a pre-trained financial news sentiment classifier by building the full MLOps stack: data versioning, model registry, REST API, containerisation, CI/CD, and production monitoring.
 
 By the end of this project, you will be able to:
@@ -30,10 +41,11 @@ By the end of this project, you will be able to:
 ### 1. Clone the repo
 
 ```bash
-git clone
+git clone https://github.com/marttp/cd15155-ml-ops-starter.git
+cd cd15155-ml-ops-starter
 ```
 
-> All the dependencies are installed in the workspace. Please refrain from installing dependencies using pip
+> Udacity workspaces have preinstalled dependencies. Local machines use an isolated Python 3.12 environment as described in the setup evidence.
 
 Navigate to the project root 
 ```bash
@@ -56,7 +68,8 @@ python scripts/smoke_test.py
 
 ### 4. Launch Mlflow server
 ```
-mlflow server --port 5000
+mkdir -p mlruns
+mlflow server --host 127.0.0.1 --port 5001 --backend-store-uri sqlite:///mlruns/mlflow.db --artifacts-destination ./mlartifacts
 ```
 
 ## Project Structure
@@ -79,9 +92,6 @@ starter/
 │   └── locustfile.py        # Locust load testing (Task 3)
 ├── tests/
 │   └── test_api.py          # pytest integration tests for the API (Task 3)
-├── .github/
-│   └── workflows/
-│       └── ci-cd.yml        # CI/CD pipeline (Task 5)
 ├── dvc.yaml                 # DVC pipeline definition (Task 1)
 ├── params.yaml              # Configuration parameters 
 ├── docker-compose.yml       # Local API service orchestration (Task 4)
@@ -141,7 +151,7 @@ Complete [Dockerfile](starter/Dockerfile) and [docker-compose.yml](starter/docke
 
 ### Task 5 — CI/CD Pipeline
 Complete [scripts/run_deepchecks.py](starter/scripts/run_deepchecks.py) to run property drift and prediction drift checks. 
-Then complete [.github/workflows/ci-cd.yml](starter/.github/workflows/ci-cd.yml) to build a pipeline that on every push to `main`:
+Then complete [.github/workflows/ci-cd.yml](.github/workflows/ci-cd.yml) to build a pipeline that on every push to `main`:
 1. Runs integration tests
 2. Runs Deepchecks model quality checks
 3. Builds and pushes the Docker image to Amazon ECR
@@ -172,7 +182,7 @@ gh secret set AWS_REGION --body "us-east-1"
 gh secret set ECR_REGISTRY --body ""
 ```
 
-**Deliverable:** [scripts/run_deepchecks.py](starter/scripts/run_deepchecks.py), [.github/workflows/ci-cd.yml](starter/.github/workflows/ci-cd.yml)
+**Deliverable:** [scripts/run_deepchecks.py](starter/scripts/run_deepchecks.py), [.github/workflows/ci-cd.yml](.github/workflows/ci-cd.yml)
 
 ### Task 6 — Monitoring
 Add structured JSON logging and instrument [app/main.py](starter/app/main.py) with Prometheus counters and histograms. Configure [prometheus.yml](starter/prometheus.yml) to scrape the `/metrics` endpoint. Then complete [monitoring/stream.py](starter/monitoring/stream.py) to simulate production traffic and log aggregated metrics (sentiment distribution, confidence, latency) to MLflow.
@@ -201,4 +211,4 @@ python monitoring/stream.py
 
 ## License
 
-[License](../LICENSE.txt)
+[License](LICENSE.txt)
