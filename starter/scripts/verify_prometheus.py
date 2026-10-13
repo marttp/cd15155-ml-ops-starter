@@ -12,9 +12,13 @@ def main():
     metrics.raise_for_status()
     assert "finbert_prediction_requests_total" in metrics.text
     for attempt in range(20):
-        response = requests.get(url + "/prometheus/api/v1/targets", timeout=15)
-        response.raise_for_status()
-        targets = response.json()["data"]["activeTargets"]
+        try:
+            response = requests.get(url + "/prometheus/api/v1/targets", timeout=15)
+            response.raise_for_status()
+            targets = response.json()["data"]["activeTargets"]
+        except requests.RequestException:
+            time.sleep(2)
+            continue
         if any(target["labels"].get("job") == "finbert-api" and target["health"] == "up" for target in targets):
             break
         time.sleep(2)
