@@ -5,24 +5,29 @@ Model loading utilities.
 import json
 import os
 
+import torch
 from huggingface_hub import hf_hub_download
 from transformers import AutoConfig, AutoModelForSequenceClassification, pipeline
 
 
 def load_huggingface_classifier(model_id: str):
     """Correct the supplied FinBERT label configuration without editing its cache."""
-    config_path = hf_hub_download(repo_id=model_id, filename="config.json")
+    revision = os.getenv("HF_MODEL_REVISION", "ec5ffa074fc00da4de8b28554a57aa1debf92508")
+    torch.set_num_threads(int(os.getenv("MODEL_NUM_THREADS", "2")))
+    config_path = hf_hub_download(repo_id=model_id, filename="config.json", revision=revision)
     with open(config_path) as f:
         config_data = json.load(f)
     config_data["id2label"] = {0: "negative", 1: "neutral", 2: "positive"}
     config_data["label2id"] = {"negative": 0, "neutral": 1, "positive": 2}
     model_type = config_data.pop("model_type")
     config = AutoConfig.for_model(model_type, **config_data)
-    model = AutoModelForSequenceClassification.from_pretrained(model_id, config=config)
+    config._commit_hash = revision
+    model = AutoModelForSequenceClassification.from_pretrained(model_id, config=config, revision=revision)
     return pipeline(
         "text-classification",
         model=model,
         tokenizer=model_id,
+        revision=revision,
         device="cpu",
         truncation=True,
         max_length=512,
