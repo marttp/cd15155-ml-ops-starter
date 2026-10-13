@@ -8,8 +8,12 @@ partial final monitoring window.
 The API exports a sentiment-labelled prediction Counter, a latency Histogram
 in milliseconds, an error Counter, and /metrics using Prometheus exposition
 headers. JSON log entries include timestamp, level, and message, with model
-loading, predictions, and errors recorded. A batch increments counters once
-per prediction; each result's latency is the complete batch duration.
+loading, predictions, and errors recorded. The sentiment Counter increments
+once per predicted text; each response retains the complete batch duration.
+Following review on 14 October 2026, the latency Histogram observes that duration
+once per inference call. An unloaded-model HTTP 503 does not increment the
+prediction error Counter. Regression coverage verifies these cases and genuine
+inference failures; all 36 project tests pass locally.
 
 The local stream sent all 444 cleaned headlines to the real API and logged
 nine windows, eight of 50 predictions and one of 44. All five metric histories
