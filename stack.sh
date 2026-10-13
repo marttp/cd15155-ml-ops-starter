@@ -51,6 +51,7 @@ case "${1:-help}" in
     PYTHON="${PYTHON_BIN:-$ROOT/starter/.venv/bin/python}"
     [[ -x "$PYTHON" ]] || { echo 'Python environment missing. See README.md.' >&2; exit 1; }
     "$PYTHON" -c 'import sys; assert sys.version_info[:2] == (3, 12), "Python 3.12 required"; import dvc, mlflow, datasets, torch'
+    export PATH="$(dirname "$PYTHON"):$PATH"
     docker info >/dev/null
     [[ -f .env ]] || cp .env.example .env
     export MLFLOW_TRACKING_URI=http://127.0.0.1:5001 MODEL_NAME=finbert MODEL_STAGE=production MODEL_SOURCE=mlflow
