@@ -1,0 +1,47 @@
+{
+  "api_url": "http://44.223.80.3",
+  "targets": [
+    {
+      "discoveredLabels": {
+        "__address__": "127.0.0.1:8000",
+        "__metrics_path__": "/metrics",
+        "__scheme__": "http",
+        "__scrape_interval__": "15s",
+        "__scrape_timeout__": "10s",
+        "job": "finbert-api"
+      },
+      "labels": {
+        "instance": "127.0.0.1:8000",
+        "job": "finbert-api"
+      },
+      "scrapePool": "finbert-api",
+      "scrapeUrl": "http://127.0.0.1:8000/metrics",
+      "globalUrl": "http://:8000/metrics",
+      "lastError": "",
+      "lastScrape": "2026-10-13T10:25:43.121080442Z",
+      "lastScrapeDuration": 0.002212998,
+      "health": "up",
+      "scrapeInterval": "15s",
+      "scrapeTimeout": "10s"
+    }
+  ],
+  "up_query": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": {
+            "__name__": "up",
+            "instance": "127.0.0.1:8000",
+            "job": "finbert-api"
+          },
+          "value": [
+            1791887155.443,
+            "1"
+          ]
+        }
+      ]
+    }
+  }
+}
