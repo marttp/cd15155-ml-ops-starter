@@ -1,0 +1,45 @@
+name: Full local stack verification
+on:
+  pull_request:
+    paths: ['stack.sh', 'starter/stack.compose.yml', '.github/workflows/stack-check.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  stack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Prepare isolated Python environment
+        run: |
+          python -m venv starter/.venv
+          starter/.venv/bin/python -m pip install torch==2.6.0 torchvision==0.21.0 --index-url https://download.pytorch.org/whl/cpu
+          starter/.venv/bin/python -m pip install -r starter/requirements.txt
+      - name: Start and verify the entire stack
+        run: |
+          bash -n stack.sh
+          ./stack.sh local-up
+          ./stack.sh local-status
+          starter/.venv/bin/python - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path('starter/reports/monitoring.json').read_text())
+          assert report['predictions'] == 444
+          assert len(report['windows']) == 9
+          PY
+      - name: Preserve monitoring evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-local-stack
+          path: starter/reports/monitoring.json
+      - name: Diagnostics and stop
+        if: always()
+        working-directory: starter
+        run: |
+          docker compose --project-name finbert-stack -f docker-compose.yml -f stack.compose.yml logs --tail 80 || true
+          ../stack.sh local-down

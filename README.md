@@ -30,6 +30,72 @@ By the end of this project, you will be able to:
 - Add production monitoring using MLflow
 
 
+## Start the full stack
+
+`stack.sh` is the single entry point, runnable from any directory. Local startup
+includes DVC preparation, a persistent MLflow server, evaluation and production
+promotion, the registry-backed API, Prometheus, and the complete monitoring stream.
+It fails if promotion or service verification fails. Re-running local startup
+creates a new evaluation/model version and monitoring run.
+
+On a local machine outside the Udacity workspace, install Python 3.12, Git,
+Docker with Compose v2 supporting `--wait`, and the project dependencies once:
+
+```bash
+python3.12 -m venv starter/.venv
+starter/.venv/bin/python -m pip install -r starter/requirements.txt
+./stack.sh local-up
+```
+
+Internet access is required for the initial dataset, model and container downloads.
+No manual values or AWS credentials are needed for local startup. The script copies
+`.env.example` when `.env` is absent and supplies the required local settings.
+Ports 5001, 8000 and 9090 must be free; stop any separately started MLflow/API
+processes first. Docker persists registry/artifacts in the `finbert-stack_mlflow-state`
+volume. MLflow is bound to loopback; the existing API/Prometheus Compose ports
+remain published on the host. Model downloads and evaluation can take several minutes.
+An interrupted startup leaves containers available for inspection; `local-down`
+stops them without deleting the registry volume.
+
+```bash
+./stack.sh local-status
+./stack.sh local-down
+```
+
+The course workspace must not build or run Docker. Use the AWS commands there
+instead. They require GitHub CLI (`gh`), an authenticated account with Actions
+write access, and these **repository Actions secrets**, entered once in GitHub
+Settings → Secrets and variables → Actions:
+
+| Secret | Required input |
+| --- | --- |
+| `AWS_ACCESS_KEY_ID` | Lab/account credential ID |
+| `AWS_SECRET_ACCESS_KEY` | Matching secret credential |
+| `AWS_SESSION_TOKEN` | Matching temporary lab session token; renew when expired |
+| `AWS_REGION` | `us-east-1` for this project |
+| `ECR_REGISTRY` | `<12-digit-account-id>.dkr.ecr.us-east-1.amazonaws.com`, without a repository suffix |
+
+These values already exist in `marttp/cd15155-ml-ops-starter`. Never put credential
+values in this file, shell arguments or Git. For another fork, set `GH_REPO=owner/repo`.
+The AWS account needs a default VPC/public subnet and permissions for the existing
+ECR/ECS/EC2/IAM/CloudWatch bootstrap. The workflow creates project resources;
+it does not create an AWS account, credentials or the default network.
+
+```bash
+./stack.sh aws-deploy  # Full checks, image build, infrastructure, deployment and monitoring evidence
+./stack.sh aws-up      # Resume an already deployed service
+./stack.sh aws-down    # Pause its tasks, retaining infrastructure and images
+```
+
+Each AWS command waits for its workflow and propagates failure. Avoid concurrent
+manual dispatches of the same workflow while it is locating its newly created run.
+The deployment run's `reports/deployment.json` artifact contains the current public
+URL; its monitoring artifacts contain the MLflow database and window metrics.
+AWS hosts the API and Prometheus; evaluation/monitoring MLflow runs execute in
+GitHub Actions and are retained as artifacts, rather than a public MLflow server.
+Pausing tasks does not remove ECR storage charges. The currently deployed service
+is kept running for review as requested.
+
 ## Prerequisites
 
 - Python 3.12
@@ -145,7 +211,7 @@ locust -f scripts/locustfile.py --host http://localhost:8000
 ### Task 4 — Containerisation
 Complete [Dockerfile](starter/Dockerfile) and [docker-compose.yml](starter/docker-compose.yml) to run the FastAPI service with proper port mapping, environment variables, volume mounts for MLflow artifacts, and a health check.
 
-> DO NOT run docker-compose or build image locally 
+> DO NOT run docker-compose or build images in the Udacity workspace. The local runner is for a separate local machine.
 
 **Deliverable:** [Dockerfile](starter/Dockerfile), [docker-compose.yml](starter/docker-compose.yml)
 
