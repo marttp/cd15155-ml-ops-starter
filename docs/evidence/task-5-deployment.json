@@ -1,0 +1,42 @@
+{
+  "url": "http://44.205.1.115",
+  "task_definition": "arn:aws:ecs:us-east-1:<AWS_ACCOUNT_ID>:task-definition/finbert-api:2",
+  "images": [
+    {
+      "name": "http-proxy",
+      "digest": "sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10"
+    },
+    {
+      "name": "finbert-api",
+      "digest": "sha256:f71651523f8f645924dd48248e15d04f7f8003d09c83102713cda5c300f761b1"
+    }
+  ],
+  "responses": [
+    {
+      "endpoint": "/predict",
+      "response": {
+        "text": "The company reported record profits.",
+        "sentiment": "positive",
+        "confidence": 0.8390534520149231,
+        "latency_ms": 1910.7138499999792
+      }
+    },
+    {
+      "endpoint": "/predict/batch",
+      "response": [
+        {
+          "text": "The company reported record profits.",
+          "sentiment": "positive",
+          "confidence": 0.8390534520149231,
+          "latency_ms": 380.0043900000105
+        },
+        {
+          "text": "Stocks closed flat.",
+          "sentiment": "neutral",
+          "confidence": 0.798346996307373,
+          "latency_ms": 380.0043900000105
+        }
+      ]
+    }
+  ]
+}
