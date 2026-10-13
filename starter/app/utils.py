@@ -2,9 +2,31 @@
 Model loading utilities.
 """
 
+import json
 import os
 
-from transformers import pipeline
+from huggingface_hub import hf_hub_download
+from transformers import AutoConfig, AutoModelForSequenceClassification, pipeline
+
+
+def load_huggingface_classifier(model_id: str):
+    """Correct the supplied FinBERT label configuration without editing its cache."""
+    config_path = hf_hub_download(repo_id=model_id, filename="config.json")
+    with open(config_path) as f:
+        config_data = json.load(f)
+    config_data["id2label"] = {0: "negative", 1: "neutral", 2: "positive"}
+    config_data["label2id"] = {"negative": 0, "neutral": 1, "positive": 2}
+    model_type = config_data.pop("model_type")
+    config = AutoConfig.for_model(model_type, **config_data)
+    model = AutoModelForSequenceClassification.from_pretrained(model_id, config=config)
+    return pipeline(
+        "text-classification",
+        model=model,
+        tokenizer=model_id,
+        device="cpu",
+        truncation=True,
+        max_length=512,
+    )
 
 
 def load_classifier():
@@ -20,12 +42,7 @@ def load_classifier():
     if model_source == "huggingface":
         hf_model_id = os.getenv("HF_MODEL_ID", "baptle/FinBERT_market_based")
         print(f"Loading model from HuggingFace: {hf_model_id}")
-        return pipeline(
-            "text-classification",
-            model=hf_model_id,
-            tokenizer=hf_model_id,
-            device="cpu",
-        )
+        return load_huggingface_classifier(hf_model_id)
 
     import mlflow.transformers
 
