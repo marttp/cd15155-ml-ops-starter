@@ -1,0 +1,9 @@
+{
+  "region": "us-east-1",
+  "cluster": "finbert-cluster",
+  "service": "finbert-api-service",
+  "security_group": "sg-0724921b181b27b66",
+  "cpu": 512,
+  "memory_mb": 2048,
+  "desired_tasks": 1
+}

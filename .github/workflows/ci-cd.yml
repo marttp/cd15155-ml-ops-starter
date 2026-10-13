@@ -1,7 +1,7 @@
 name: MLOps CI and ECS delivery
 on:
   push:
-    branches: [main, codex/mlops-task-5-cicd]
+    branches: [main]
   pull_request:
   workflow_dispatch:
 permissions:

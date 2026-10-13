@@ -1,0 +1,10 @@
+{
+  "property_drift": 0.2912954390854944,
+  "prediction_drift": 0.23166959033265977,
+  "thresholds": {
+    "property_drift_threshold": 0.5,
+    "prediction_drift_threshold": 0.6
+  },
+  "reference_samples": 1629,
+  "current_samples": 444
+}

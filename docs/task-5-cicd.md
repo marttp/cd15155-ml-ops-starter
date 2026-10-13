@@ -28,4 +28,18 @@ measure or guarantee the remaining Udacity credit balance.
 Temporary AWS credentials stay in GitHub secrets. The execution role can be
 supplied through the ECS_EXECUTION_ROLE_ARN repository variable; otherwise the
 bootstrap reuses a compatible existing role or creates a task execution role.
-Actual AWS deployment evidence will be recorded after the first pipeline run.
+AWS execution passed on 13 October 2026:
+https://github.com/marttp/cd15155-ml-ops-starter/actions/runs/38377033671
+
+Linux tests, Deepchecks, ECR SHA/latest uploads, ECS provisioning, task rendering,
+service stability, and public endpoint verification all passed. Task revision 2
+returned valid health, single, and batch predictions. Evidence is committed in
+`evidence/task-5-deployment.json`, `evidence/task-5-deepchecks.json`, and
+`evidence/task-5-aws-resources.json`; account identifiers are redacted in the
+committed copies. A real CLI rejection returned nonzero status with an excessive
+drift score. The original threshold was restored.
+
+The MLflow-backed API path also passed all 15 API tests. This complements CI's
+Hugging Face path. The production endpoint uses the Fargate task's public IP,
+which can change on deployment. The one-task deployment permits brief downtime
+while replacing a task to limit concurrent resource usage.
